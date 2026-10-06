@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#03121A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jarvis">
+<title>JARVIS</title>
+<style>
+:root{
+  --bg:#03121A; --panel:#072330; --line:#12404F; --cy:#5FE3F5; --cy-d:#2A8FA0;
+  --amber:#FFB547; --tx:#D3F1F6; --dim:#6A939F;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg)}
+.jv-root{
+  height:100vh;height:100dvh;display:flex;flex-direction:column;
+  background:
+    radial-gradient(120% 60% at 50% -10%, #0A3342 0%, transparent 60%),
+    repeating-linear-gradient(0deg, rgba(95,227,245,.035) 0 1px, transparent 1px 28px),
+    var(--bg);
+  color:var(--tx);
+  font-family:"Avenir Next","Segoe UI","Helvetica Neue",Arial,sans-serif;
+  font-size:15px;line-height:1.45;
+  padding-top:env(safe-area-inset-top);
+}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--cy);outline-offset:2px}
+svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+.jv-head{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.jv-title{flex:1}
+.jv-name{font-family:"Avenir Next Condensed","DIN Alternate","Arial Narrow",sans-serif;font-weight:600;font-size:22px;letter-spacing:.28em;color:var(--cy)}
+.jv-status{color:var(--dim);font-size:13px}
+.jv-tabs{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.jv-tabs button{background:transparent;border:0;padding:9px 12px;color:var(--dim);display:grid;place-items:center}
+.jv-tabs button.on{background:var(--panel);color:var(--cy)}
+
+.jv-main{flex:1;overflow-y:auto;padding:14px}
+.view{display:none}.view.on{display:block}
+#chat.on{display:flex;flex-direction:column;gap:12px;min-height:100%}
+
+.jv-empty{margin:auto 0;padding:8px 2px}
+.jv-empty p{color:var(--dim);margin:0 0 14px;max-width:34ch}
+.starters{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.starters button{background:transparent;border:1px solid var(--line);border-radius:10px;padding:9px 12px;text-align:left;color:var(--tx)}
+.starters button:hover{border-color:var(--cy-d);background:var(--panel)}
+
+.msg{display:flex;flex-direction:column;max-width:88%}
+.msg.user{align-self:flex-end;align-items:flex-end}
+.msg.user .bubble{background:var(--panel);border:1px solid var(--line);border-radius:14px 14px 3px 14px;padding:9px 13px}
+.msg.jarvis .bubble{border-left:2px solid var(--cy);padding:2px 0 2px 12px}
+.msg.alert{align-self:stretch;max-width:100%}
+.msg.alert .bubble{background:rgba(255,181,71,.1);border:1px solid var(--amber);color:var(--amber);border-radius:10px;padding:9px 13px;font-weight:600}
+.chips{display:flex;flex-direction:column;gap:4px;margin:7px 0 0 14px}
+.chips span{font-size:13px;color:var(--cy);background:rgba(95,227,245,.08);border-radius:6px;padding:3px 9px;align-self:flex-start}
+
+.agenda section{margin-bottom:18px}
+.agenda h2{font-size:14px;font-weight:600;color:var(--dim);margin:0 0 6px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+.agenda h2.warn{color:var(--amber);border-color:rgba(255,181,71,.4)}
+.none{color:var(--dim)}
+.row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(18,64,79,.5)}
+.tick{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--cy-d);background:transparent;display:grid;place-items:center;flex:none;color:var(--bg)}
+.tick svg{width:14px;height:14px;stroke-width:3}
+.row.done .tick{background:var(--cy);border-color:var(--cy)}
+.row.late .tick{border-color:var(--amber)}
+.txt{flex:1;min-width:0}
+.t{overflow-wrap:anywhere}
+.d{font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums}
+.row.late .d{color:var(--amber)}
+.row.done .t{text-decoration:line-through;color:var(--dim)}
+.del{background:transparent;border:0;color:var(--dim);padding:8px;border-radius:8px}
+.del:hover{color:#FF8A8A}
+
+.settings h2{font-size:14px;font-weight:600;color:var(--dim);margin:20px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+.settings h2:first-child{margin-top:0}
+.settings p{color:var(--dim);font-size:13.5px;margin:6px 0 10px}
+.settings label.sw{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0}
+.settings input[type=checkbox]{width:20px;height:20px;accent-color:#5FE3F5}
+.settings input[type=password]{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--tx);font-size:16px}
+.btn{background:rgba(95,227,245,.1);border:1px solid var(--cy-d);color:var(--cy);border-radius:10px;padding:9px 14px;margin:4px 8px 4px 0}
+.btn.quiet{background:transparent;border-color:var(--line);color:var(--dim)}
+#setmsg{color:var(--cy);min-height:1.4em}
+
+.jv-foot{display:flex;gap:8px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:rgba(3,18,26,.92)}
+.jv-foot input{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 14px;color:var(--tx);font:inherit;font-size:16px}
+.jv-foot input::placeholder{color:var(--dim)}
+.jv-foot button{width:46px;border-radius:12px;border:1px solid var(--cy-d);background:rgba(95,227,245,.12);color:var(--cy);display:grid;place-items:center}
+.jv-foot button:disabled{opacity:.4;cursor:default}
+#mic.live{background:var(--amber);border-color:var(--amber);color:var(--bg)}
+
+.typing{display:flex;gap:5px;align-items:center;height:22px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--cy);opacity:.4;animation:blink 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+
+.ring-a{transform-origin:60px 60px;animation:spin 24s linear infinite}
+.ring-b{transform-origin:60px 60px;animation:spin 16s linear infinite reverse}
+.core{opacity:.55}
+.busy .ring-a{animation-duration:4s}.busy .ring-b{animation-duration:2.5s}
+.busy .core{opacity:.95;animation:pulse 1s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{opacity:.5}}
+@keyframes blink{50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.ring-a,.ring-b,.busy .core,.typing i{animation:none}}
+</style>
+</head>
+<body>
+<div class="jv-root" id="root">
+  <header class="jv-head">
+    <svg viewBox="0 0 120 120" width="64" height="64" aria-hidden="true">
+      <circle class="ring-a" cx="60" cy="60" r="54" fill="none" stroke="#5FE3F5" stroke-width="1.5" stroke-dasharray="4 6" opacity=".7"/>
+      <circle class="ring-b" cx="60" cy="60" r="42" fill="none" stroke="#5FE3F5" stroke-width="3" stroke-dasharray="30 12" opacity=".9"/>
+      <circle cx="60" cy="60" r="28" fill="none" stroke="#5FE3F5" stroke-width="1" opacity=".5"/>
+      <circle class="core" cx="60" cy="60" r="16" fill="#5FE3F5"/>
+      <circle cx="60" cy="60" r="7" fill="#E9FEFF"/>
+    </svg>
+    <div class="jv-title">
+      <div class="jv-name">JARVIS</div>
+      <div class="jv-status" id="status" aria-live="polite"></div>
+    </div>
+    <nav class="jv-tabs" aria-label="View">
+      <button data-tab="chat" class="on" aria-label="Chat"><svg class="i" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
+      <button data-tab="agenda" aria-label="Agenda"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></button>
+      <button data-tab="settings" aria-label="Settings"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </nav>
+  </header>
+
+  <main class="jv-main" id="main">
+    <div class="view on" id="chat"></div>
+    <div class="view agenda" id="agenda"></div>
+    <div class="view settings" id="settings"></div>
+  </main>
+
+  <footer class="jv-foot">
+    <input id="inp" placeholder="Remind me to…" aria-label="Message JARVIS" autocomplete="off" enterkeyhint="send">
+    <button id="mic" aria-label="Speak" hidden><svg class="i" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg></button>
+    <button id="send" aria-label="Send"><svg class="i" viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
+  </footer>
+</div>
+
+<script>
+/* ---------- helpers ---------- */
+const $ = (s) => document.querySelector(s);
+const pad = (n) => String(n).padStart(2, "0");
+const toLocalISO = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const uid = () => Math.random().toString(36).slice(2, 9);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const sameDay = (a, b) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch{ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
+};
+
+let items = store.get("jarvis:items", []);
+let messages = store.get("jarvis:chat", []);
+let settings = Object.assign({ key: "", speak: true, notify: false }, store.get("jarvis:settings", {}));
+let tab = "chat", busy = false;
+
+const saveItems = () => store.set("jarvis:items", items);
+const saveSettings = () => store.set("jarvis:settings", settings);
+
+function fmtDue(due){
+  if(!due) return "No time set";
+  const d = new Date(due); if(isNaN(d)) return "No time set";
+  const now = new Date(), tmr = new Date(now); tmr.setDate(now.getDate()+1);
+  const time = d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+  if(sameDay(d, now)) return `Today, ${time}`;
+  if(sameDay(d, tmr)) return `Tomorrow, ${time}`;
+  return `${d.toLocaleDateString([], {weekday:"short", month:"short", day:"numeric"})}, ${time}`;
+}
+
+function groupItems(list){
+  const now = new Date();
+  const g = {Overdue:[], Today:[], Upcoming:[], "No time":[], Done:[]};
+  list.forEach((it) => {
+    if(it.done) return g.Done.push(it);
+    if(!it.due) return g["No time"].push(it);
+    const d = new Date(it.due);
+    if(d < now) g.Overdue.push(it);
+    else if(sameDay(d, now)) g.Today.push(it);
+    else g.Upcoming.push(it);
+  });
+  const by = (a,b) => new Date(a.due) - new Date(b.due);
+  g.Overdue.sort(by); g.Today.sort(by); g.Upcoming.sort(by);
+  return g;
+}
+
+function applyActions(list, actions){
+  let next = [...list]; const chips = [];
+  (actions || []).forEach((a) => {
+    if(a.type === "add" && a.title){
+      const it = {id: uid(), title: a.title, due: a.due || null, done: false, pinged: false};
+      next.push(it); chips.push(`Added: ${it.title} (${fmtDue(it.due)})`);
+    } else if(a.type === "complete"){
+      const it = next.find((x) => x.id === a.id);
+      if(it){ next = next.map((x) => x.id===a.id ? {...x, done:true} : x); chips.push(`Completed: ${it.title}`); }
+    } else if(a.type === "delete"){
+      const it = next.find((x) => x.id === a.id);
+      if(it){ next = next.filter((x) => x.id !== a.id); chips.push(`Removed: ${it.title}`); }
+    } else if(a.type === "update"){
+      const it = next.find((x) => x.id === a.id);
+      if(it){
+        const u = {...it, pinged:false};
+        if(a.title) u.title = a.title;
+        if("due" in a) u.due = a.due || null;
+        next = next.map((x) => x.id===a.id ? u : x);
+        chips.push(`Updated: ${u.title} (${fmtDue(u.due)})`);
+      }
+    }
+  });
+  return {items: next, chips};
+}
+
+/* ---------- offline language parser ---------- */
+const DAY_IDX = {sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
+const MON_IDX = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+const MONTHS = "(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)";
+
+function cleanTitle(s){
+  s = s.replace(/\s+/g, " ").trim();
+  s = s.replace(/^(?:please\s+)?(?:jarvis[,:]?\s*)?(?:can you\s+|could you\s+)?(?:remind me(?:\s+(?:to|about|that))?|set (?:a )?reminder(?:\s+(?:to|for|about))?|add (?:a |an )?(?:reminder|event|task)?(?:\s*(?:to|for|called))?|schedule(?: a| an)?|put|i have(?: a| an)?|i need to|don't forget to|dont forget to)\s*/i, "");
+  s = s.replace(/^(?:to|about|that)\s+/i, "");
+  for(let i=0;i<3;i++){
+    s = s.replace(/\s+(?:on|at|by|for|due|in|the|from|to|this|next|and)\s*$/i, "");
+    s = s.replace(/^(?:on|at|by|for|in|and)\s+/i, "");
+  }
+  s = s.replace(/^[,.;:\s]+|[,.;:\s]+$/g, "");
+  return s ? s[0].toUpperCase() + s.slice(1) : "";
+}
+
+function parseWhen(raw){
+  let s = " " + raw + " ";
+  const now = new Date();
+  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const assumed = [];
+  let date = null, hh = null, mm = 0, m;
+  const take = (re) => { const x = s.match(re); if(x) s = s.replace(re, " "); return x; };
+
+  // in N minutes/hours/days/weeks
+  if((m = take(/\bin\s+(a|an|\d+)\s*(minutes?|mins?|hours?|hrs?|days?|weeks?)\b/i))){
+    const n = /^an?$/i.test(m[1]) ? 1 : parseInt(m[1], 10);
+    const u = m[2].toLowerCase();
+    if(u.startsWith("min") || u.startsWith("h")){
+      const d = new Date(now);
+      if(u.startsWith("min")) d.setMinutes(d.getMinutes() + n); else d.setHours(d.getHours() + n);
+      d.setSeconds(0, 0);
+      return {due: d, title: cleanTitle(s), assumed};
+    }
+    date = new Date(base); date.setDate(date.getDate() + (u.startsWith("d") ? n : 7*n));
+  }
+
+  if(!date){
+    if(take(/\bday after tomorrow\b/i)){ date = new Date(base); date.setDate(date.getDate()+2); }
+    else if(take(/\b(?:tomorrow|tmrw|tmr)\b/i)){ date = new Date(base); date.setDate(date.getDate()+1); }
+    else if(take(/\btonight\b/i)){ date = new Date(base); hh = 20; }
+    else if(take(/\btoday\b/i)){ date = new Date(base); }
+  }
+
+  if(!date && (m = take(new RegExp("\\b(?:on\\s+)?" + MONTHS + "\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b", "i")))){
+    date = new Date(now.getFullYear(), MON_IDX[m[1].slice(0,3).toLowerCase()], parseInt(m[2], 10));
+    if(date < base) date.setFullYear(date.getFullYear()+1);
+  }
+  if(!date && (m = take(new RegExp("\\b(?:on\\s+)?(\\d{1,2})(?:st|nd|rd|th)?\\s+(?:of\\s+)?" + MONTHS + "\\b", "i")))){
+    date = new Date(now.getFullYear(), MON_IDX[m[2].slice(0,3).toLowerCase()], parseInt(m[1], 10));
+    if(date < base) date.setFullYear(date.getFullYear()+1);
+  }
+  if(!date && (m = take(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/))){
+    let y = m[3] ? parseInt(m[3], 10) : now.getFullYear(); if(y < 100) y += 2000;
+    date = new Date(y, parseInt(m[1],10)-1, parseInt(m[2],10));
+    if(!m[3] && date < base) date.setFullYear(date.getFullYear()+1);
+  }
+  if(!date && (m = take(/\b(?:(next|this|on)\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday|sun|mon|tues|tue|wed|thurs|thu|fri|sat)\b/i))){
+    const target = DAY_IDX[m[2].slice(0,3).toLowerCase()];
+    let diff = (target - base.getDay() + 7) % 7; if(diff === 0) diff = 7;
+    date = new Date(base); date.setDate(date.getDate() + diff);
+  }
+
+  // time of day
+  s = s.replace(/\bo'?clock\b/i, " ");
+  if((m = take(/\b(?:at\s*|@\s*)?(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)(?![a-z])/i))){
+    let h = parseInt(m[1], 10) % 12; if(/^p/i.test(m[3])) h += 12;
+    hh = h; mm = m[2] ? parseInt(m[2], 10) : 0;
+  } else if((m = take(/\b(?:at\s*|@\s*)?([01]?\d|2[0-3]):([0-5]\d)\b/))){
+    hh = parseInt(m[1], 10); mm = parseInt(m[2], 10);
+  } else if(take(/\b(?:noon|midday)\b/i)){ hh = 12; }
+  else if(take(/\bmidnight\b/i)){ hh = 0; }
+  else if((m = take(/\bat\s+(\d{1,2})\b(?!\s*(?::|\/|\d|st\b|nd\b|rd\b|th\b))/i))){
+    let h = parseInt(m[1], 10);
+    if(h >= 1 && h <= 6) h += 12;
+    else if(h === 12) h = 12;
+    hh = h;
+    const label = new Date(2000,0,1,h,0).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+    assumed.push(`I read that as ${label}. Say am or pm if I got it wrong.`);
+  }
+  if(hh === null){
+    if((m = take(/\b(?:this|in the)\s+(morning|afternoon|evening)\b/i)) || (date && (m = take(/\b(morning|afternoon|evening)\b/i)))){
+      hh = {morning:9, afternoon:14, evening:18}[m[1].toLowerCase()];
+    }
+  }
+
+  let due = null;
+  if(hh !== null){
+    if(!date){
+      date = new Date(base);
+      const t = new Date(base); t.setHours(hh, mm, 0, 0);
+      if(t <= now) date.setDate(date.getDate() + 1);
+    }
+    date.setHours(hh, mm, 0, 0); due = date;
+  } else if(date){
+    date.setHours(9, 0, 0, 0); due = date;
+    assumed.push("No time given, so I used 9:00 AM.");
+  }
+  return {due, title: cleanTitle(s), assumed};
+}
+
+function findItem(q, onlyOpen){
+  const stop = ["the","my","a","an","reminder","task","event","it","to","for","about"];
+  const toks = q.toLowerCase().replace(/[^\w\s']/g, " ").split(/\s+/).filter((w) => w && !stop.includes(w));
+  if(!toks.length) return null;
+  let best = null, bestScore = 0;
+  items.filter((i) => !onlyOpen || !i.done).forEach((i) => {
+    const t = i.title.toLowerCase();
+    const sc = toks.filter((w) => t.includes(w)).length;
+    if(sc > bestScore){ best = i; bestScore = sc; }
+  });
+  return best;
+}
+
+function listReply(l){
+  const now = new Date(), tmr = new Date(now); tmr.setDate(now.getDate()+1);
+  const open = items.filter((i) => !i.done);
+  const byDue = (a,b) => new Date(a.due) - new Date(b.due);
+  let list, label;
+  if(/today|tonight/.test(l)){ list = open.filter((i) => i.due && sameDay(new Date(i.due), now)); label = "Today"; }
+  else if(/tomorrow/.test(l)){ list = open.filter((i) => i.due && sameDay(new Date(i.due), tmr)); label = "Tomorrow"; }
+  else if(/week/.test(l)){ const end = new Date(now); end.setDate(end.getDate()+7); list = open.filter((i) => i.due && new Date(i.due) <= end); label = "This week"; }
+  else { list = open.filter((i) => i.due); label = "Coming up"; }
+  list.sort(byDue);
+  if(!list.length) return {reply: `Nothing on the books for ${label.toLowerCase()}.`, actions: []};
+  const shown = list.slice(0, 6).map((i) => `${i.title} (${fmtDue(i.due)})`).join("; ");
+  const more = list.length > 6 ? ` Plus ${list.length-6} more in Agenda.` : "";
+  return {reply: `${label}: ${shown}.${more}`, actions: []};
+}
+
+function localHandle(text){
+  const t = text.trim(), l = t.toLowerCase();
+  if(/^(help|what can you do)/.test(l)) return {reply: 'Try: "remind me to call Sam tomorrow at 6pm", "dinner Friday 7:30pm", "in 20 minutes check the oven", "what\'s on today?", "done call Sam", "move dentist to Thursday 3pm", "delete dentist".', actions: []};
+  if(/^(hi|hello|hey|thanks|thank you)\b/.test(l)) return {reply: "At your service. What shall I schedule?", actions: []};
+
+  let m = l.match(/^(?:mark\s+)?(?:done|complete|completed|finish|finished|tick off|check off)\b\s*(?:with\s+)?(.*)$/);
+  if(m){
+    const it = findItem(m[1], true);
+    if(!it) return {reply: "I couldn't find a matching open item. Check the Agenda tab.", actions: []};
+    return {reply: `Noted. "${it.title}" is done.`, actions: [{type:"complete", id: it.id}]};
+  }
+  m = l.match(/^(?:delete|remove|cancel|drop)\b\s*(.*)$/);
+  if(m){
+    const it = findItem(m[1], false);
+    if(!it) return {reply: "I couldn't find a matching item. Check the Agenda tab.", actions: []};
+    return {reply: `Removed "${it.title}".`, actions: [{type:"delete", id: it.id}]};
+  }
+  m = t.match(/^(?:reschedule|move|push)\s+(.*?)\s+(?:to|until|for)\s+(.*)$/i);
+  if(m){
+    const it = findItem(m[1], true), w = parseWhen(m[2]);
+    if(!it) return {reply: "I couldn't find that item to move.", actions: []};
+    if(!w.due) return {reply: "When should I move it to?", actions: []};
+    return {reply: `Moved "${it.title}" to ${fmtDue(toLocalISO(w.due))}.${w.assumed.length ? " " + w.assumed.join(" ") : ""}`, actions: [{type:"update", id: it.id, due: toLocalISO(w.due)}]};
+  }
+  if(/^(what|what's|whats|show|list|agenda|do i have|anything|how's|am i)\b/.test(l) || /^(my )?(agenda|schedule|plate)\??$/.test(l)) return listReply(l);
+
+  const w = parseWhen(t);
+  if(!w.title) return {reply: "What should I remind you about?", actions: []};
+  const due = w.due ? toLocalISO(w.due) : null;
+  const note = w.assumed.length ? " " + w.assumed.join(" ") : "";
+  const reply = due ? `Set. "${w.title}", ${fmtDue(due)}.${note}` : `Added "${w.title}" with no time. Include a day or time and I'll schedule it.`;
+  return {reply, actions: [{type: "add", title: w.title, due}]};
+}
+
+/* ---------- optional AI mode (your own Anthropic key) ---------- */
+function buildSystem(){
+  const now = new Date();
+  const list = items.map(({id,title,due,done}) => ({id,title,due,done}));
+  return `You are JARVIS, a calm, dry-witted personal scheduling assistant. Current local time: ${toLocalISO(now)} (${now.toLocaleDateString([], {weekday:"long"})}).
+All times are local, formatted YYYY-MM-DDTHH:mm.
+Current items (JSON): ${JSON.stringify(list)}
+Respond with ONLY a JSON object, no markdown: {"reply": string, "actions": [ ... ]}
+Action types:
+{"type":"add","title":string,"due":string|null}
+{"type":"complete","id":string}
+{"type":"delete","id":string}
+{"type":"update","id":string,"title"?:string,"due"?:string|null}
+Rules: reply is 1 to 2 short sentences and always states the exact day and time you set. Resolve relative dates from the current time. If no time is given, ask once and emit no actions, unless they said morning (9:00), afternoon (14:00), evening (18:00) or tonight (20:00); say which default you used. When asked about the schedule, answer from the list with no actions. Only use ids that exist. Never invent items.`;
+}
+async function aiHandle(){
+  const history = messages.filter((m) => m.role==="user" || m.role==="jarvis").slice(-12)
+    .map((m) => ({role: m.role==="user" ? "user" : "assistant", content: m.text}));
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": settings.key,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({model: "claude-sonnet-4-6", max_tokens: 1000, system: buildSystem(), messages: history})
+  });
+  if(!res.ok) throw new Error("API " + res.status);
+  const data = await res.json();
+  const out = (data.content || []).map((c) => c.type==="text" ? c.text : "").join("").replace(/```json|```/g, "").trim();
+  let parsed;
+  try{ parsed = JSON.parse(out); }catch{ parsed = JSON.parse(out.match(/\{[\s\S]*\}/)[0]); }
+  return {reply: parsed.reply || "Done.", actions: parsed.actions || []};
+}
+
+/* ---------- speech, sound, notifications ---------- */
+function speak(text){
+  if(!("speechSynthesis" in window)) return;
+  try{ speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.pitch = .9; speechSynthesis.speak(u); }catch{}
+}
+let audioCtx = null;
+function beep(){
+  try{
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === "suspended") audioCtx.resume();
+    [0, .22].forEach((t) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.frequency.value = 880; o.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(.15, audioCtx.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(.001, audioCtx.currentTime + t + .18);
+      o.start(audioCtx.currentTime + t); o.stop(audioCtx.currentTime + t + .2);
+    });
+  }catch{}
+  try{ navigator.vibrate && navigator.vibrate([200, 100, 200]); }catch{}
+}
+function pushNotification(title, body){
+  if(settings.notify && "Notification" in window && Notification.permission === "granted"){
+    try{ new Notification(title, {body}); }catch{}
+  }
+}
+
+function checkDue(){
+  const now = new Date();
+  const due = items.filter((i) => !i.done && !i.pinged && i.due && new Date(i.due) <= now);
+  if(!due.length) return;
+  due.forEach((d) => {
+    d.pinged = true;
+    const late = now - new Date(d.due) > 2*60*1000;
+    const text = late ? `Missed: ${d.title} (was ${fmtDue(d.due)})` : `Due now: ${d.title}`;
+    messages.push({id: uid(), role: "alert", text});
+    pushNotification("JARVIS", text);
+    if(settings.speak) speak(text);
+  });
+  saveItems(); store.set("jarvis:chat", messages.slice(-80));
+  beep(); renderAll();
+}
+
+/* ---------- rendering ---------- */
+function renderStatus(){
+  const n = items.filter((i) => !i.done).length;
+  $("#status").textContent = busy ? "Working on it" : `${n} open ${n===1 ? "item" : "items"}`;
+}
+const starters = ["Remind me to call the dentist tomorrow at 9am", "Dinner with Sam Friday at 7:30pm", "In 20 minutes check the oven", "What's on my plate today?"];
+
+function renderChat(){
+  const el = $("#chat");
+  let h = "";
+  if(!messages.length){
+    h += `<div class="jv-empty"><p>Tell me what to remember or schedule. I'll keep the agenda straight.</p><div class="starters">${starters.map((s) => `<button data-s="${esc(s)}">${esc(s)}</button>`).join("")}</div></div>`;
+  }
+  messages.forEach((m) => {
+    h += `<div class="msg ${m.role}"><div class="bubble">${esc(m.text)}</div>`;
+    if(m.chips && m.chips.length) h += `<div class="chips">${m.chips.map((c) => `<span>${esc(c)}</span>`).join("")}</div>`;
+    h += `</div>`;
+  });
+  if(busy) h += `<div class="msg jarvis"><div class="bubble typing"><i></i><i></i><i></i></div></div>`;
+  el.innerHTML = h;
+  const main = $("#main"); main.scrollTop = main.scrollHeight;
+}
+
+function renderAgenda(){
+  const g = groupItems(items);
+  let h = items.length ? "" : `<p class="none">Nothing scheduled. Ask me to add something in Chat.</p>`;
+  Object.entries(g).forEach(([name, list]) => {
+    if(!list.length) return;
+    h += `<section><h2 class="${name==="Overdue" ? "warn" : ""}">${name}</h2>`;
+    list.forEach((it) => {
+      h += `<div class="row ${it.done ? "done" : ""} ${name==="Overdue" ? "late" : ""}" data-id="${it.id}">
+        <button class="tick" data-act="tick" aria-label="${it.done ? "Mark not done" : "Mark done"}">${it.done ? '<svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>' : ""}</button>
+        <div class="txt"><div class="t">${esc(it.title)}</div><div class="d">${esc(fmtDue(it.due))}</div></div>
+        <button class="del" data-act="del" aria-label="Delete ${esc(it.title)}"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg></button>
+      </div>`;
+    });
+    h += `</section>`;
+  });
+  $("#agenda").innerHTML = h;
+}
+
+function renderSettings(){
+  const ai = !!settings.key;
+  $("#settings").innerHTML = `
+    <h2>Mode</h2>
+    <p>${ai ? "AI mode is on. Your messages are sent from this device to Anthropic's API using your key." : "Offline mode is on. I understand a fixed set of phrases and nothing leaves this device."}</p>
+    <input type="password" id="key" placeholder="Anthropic API key (optional)" value="${esc(settings.key)}" autocomplete="off">
+    <button class="btn" id="savekey">Save key</button><button class="btn quiet" id="rmkey">Remove key</button>
+
+    <h2>Alerts</h2>
+    <label class="sw"><span>Speak replies aloud</span><input type="checkbox" id="speak" ${settings.speak ? "checked" : ""}></label>
+    <label class="sw"><span>Browser notifications</span><input type="checkbox" id="notify" ${settings.notify ? "checked" : ""}></label>
+    <p>Alerts only fire while this page is open on your phone. Keep it open, or add it to your Home Screen.</p>
+
+    <h2>Your data</h2>
+    <p>Everything is stored in this browser on this device.</p>
+    <button class="btn" id="ics">Export to calendar (.ics)</button><button class="btn quiet" id="wipe">Clear all data</button>
+    <div id="setmsg" aria-live="polite"></div>`;
+}
+
+function renderAll(){ renderStatus(); renderChat(); renderAgenda(); if(tab !== "settings") renderSettings(); }
+
+function setTab(t){
+  tab = t;
+  document.querySelectorAll(".view").forEach((v) => v.classList.toggle("on", v.id === t));
+  document.querySelectorAll(".jv-tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === t));
+  if(t === "agenda") renderAgenda();
+  if(t === "settings") renderSettings();
+  if(t === "chat") renderChat();
+}
+
+function setBusy(b){
+  busy = b;
+  $("#root").classList.toggle("busy", b);
+  $("#send").disabled = b; $("#inp").disabled = b;
+  renderStatus(); renderChat();
+}
+
+/* ---------- send ---------- */
+function pushMsg(m){
+  messages.push({id: uid(), ...m});
+  messages = messages.slice(-80);
+  store.set("jarvis:chat", messages);
+  renderChat();
+}
+
+async function send(text){
+  const content = (text ?? $("#inp").value).trim();
+  if(!content || busy) return;
+  $("#inp").value = "";
+  setTab("chat");
+  try{ audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); }catch{}
+  pushMsg({role: "user", text: content});
+  setBusy(true);
+  let result;
+  if(settings.key){
+    try{ result = await aiHandle(); }
+    catch(e){ console.error(e); result = localHandle(content); result.reply += " (AI mode failed, so I used offline mode.)"; }
+  } else {
+    result = localHandle(content);
+  }
+  const {items: next, chips} = applyActions(items, result.actions);
+  items = next; saveItems();
+  busy = false; $("#root").classList.remove("busy"); $("#send").disabled = false; $("#inp").disabled = false;
+  pushMsg({role: "jarvis", text: result.reply, chips});
+  renderStatus(); renderAgenda();
+  if(settings.speak) speak(result.reply);
+  $("#inp").focus();
+}
+
+/* ---------- voice input ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, listening = false;
+if(SR){
+  $("#mic").hidden = false;
+  rec = new SR();
+  rec.lang = navigator.language || "en-US";
+  rec.interimResults = true; rec.continuous = false;
+  rec.onresult = (e) => {
+    let txt = ""; for(const r of e.results) txt += r[0].transcript;
+    $("#inp").value = txt;
+    if(e.results[e.results.length-1].isFinal){ stopListen(); send(); }
+  };
+  rec.onerror = () => stopListen();
+  rec.onend = () => stopListen();
+  $("#mic").addEventListener("click", () => {
+    if(listening){ stopListen(); return; }
+    try{ rec.start(); listening = true; $("#mic").classList.add("live"); }catch{}
+  });
+}
+function stopListen(){ listening = false; $("#mic").classList.remove("live"); try{ rec.stop(); }catch{} }
+
+/* ---------- export ---------- */
+function exportICS(){
+  const list = items.filter((i) => !i.done && i.due);
+  if(!list.length) return "Nothing with a time to export.";
+  const f = (d) => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+  const e = (s) => s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Jarvis//EN"];
+  list.forEach((i) => {
+    const s = new Date(i.due), en = new Date(s.getTime() + 30*60000);
+    lines.push("BEGIN:VEVENT", `UID:${i.id}@jarvis`, `DTSTAMP:${stamp}`, `DTSTART:${f(s)}`, `DTEND:${f(en)}`, `SUMMARY:${e(i.title)}`,
+      "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:Reminder", "TRIGGER:PT0M", "END:VALARM", "END:VEVENT");
+  });
+  lines.push("END:VCALENDAR");
+  const blob = new Blob([lines.join("\r\n")], {type: "text/calendar"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "jarvis-agenda.ics";
+  document.body.appendChild(a); a.click(); a.remove();
+  return `Exported ${list.length} ${list.length===1 ? "item" : "items"}. Open the file to add them to your calendar.`;
+}
+
+/* ---------- events ---------- */
+document.querySelectorAll(".jv-tabs button").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
+$("#send").addEventListener("click", () => send());
+$("#inp").addEventListener("keydown", (e) => { if(e.key === "Enter") send(); });
+
+$("#chat").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-s]"); if(b) send(b.dataset.s);
+});
+
+$("#agenda").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-act]"); if(!btn) return;
+  const id = btn.closest(".row").dataset.id;
+  if(btn.dataset.act === "tick") items = items.map((i) => i.id===id ? {...i, done: !i.done} : i);
+  if(btn.dataset.act === "del") items = items.filter((i) => i.id !== id);
+  saveItems(); renderAgenda(); renderStatus();
+});
+
+$("#settings").addEventListener("click", async (e) => {
+  const id = e.target.id; const msg = (t) => { const m = $("#setmsg"); if(m) m.textContent = t; };
+  if(id === "savekey"){ settings.key = $("#key").value.trim(); saveSettings(); renderSettings(); msg(settings.key ? "Key saved. AI mode is on." : "No key entered."); }
+  if(id === "rmkey"){ settings.key = ""; saveSettings(); renderSettings(); msg("Key removed. Offline mode is on."); }
+  if(id === "ics"){ msg(exportICS()); }
+  if(id === "wipe"){
+    if(confirm("Delete all reminders and chat history on this device?")){
+      items = []; messages = []; saveItems(); store.set("jarvis:chat", []); renderAll(); msg("All data cleared.");
+    }
+  }
+});
+$("#settings").addEventListener("change", async (e) => {
+  if(e.target.id === "speak"){ settings.speak = e.target.checked; saveSettings(); }
+  if(e.target.id === "notify"){
+    if(e.target.checked){
+      if(!("Notification" in window)){ e.target.checked = false; $("#setmsg").textContent = "This browser doesn't support notifications."; return; }
+      const p = await Notification.requestPermission();
+      settings.notify = p === "granted"; e.target.checked = settings.notify;
+      if(!settings.notify) $("#setmsg").textContent = "Permission was denied. Enable it in your browser's site settings.";
+    } else settings.notify = false;
+    saveSettings();
+  }
+});
+
+setInterval(() => { checkDue(); if(tab === "agenda") renderAgenda(); renderStatus(); }, 15000);
+document.addEventListener("visibilitychange", () => { if(!document.hidden) checkDue(); });
+
+renderAll(); checkDue();
+</script>
+</body>
+</html>
